@@ -17,6 +17,8 @@ flags.DEFINE_integer("input_height", 108, "The size of image to use (will be cen
 flags.DEFINE_integer("input_width", None, "The size of image to use (will be center cropped). If None, same value as input_height [None]")
 flags.DEFINE_integer("output_height", 64, "The size of the output images to produce [64]")
 flags.DEFINE_integer("output_width", None, "The size of the output images to produce. If None, same value as output_height [None]")
+flags.DEFINE_string("output_path", 'duke_result',"output image path")
+flags.DEFINE_integer("sample_size", 1000,"How much sample you want to output")
 flags.DEFINE_integer("options", 1,"output option")
 flags.DEFINE_string("dataset", "celebA", "The name of dataset [celebA, mnist, lsun]")
 flags.DEFINE_string("input_fname_pattern", "*.jpg", "Glob pattern of filename of input images [*]")
