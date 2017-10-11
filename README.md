@@ -22,7 +22,6 @@ source activate dcgan
 ```
 
 ### Let's start
-We did some slight changes compare to the original code. You can download the [my forked code](https://github.com/layumi/DCGAN-tensorflow) first and then modify the codes as we did.
 
 ### 1.Train
 ```bash
