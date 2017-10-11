@@ -4,6 +4,7 @@ Some codes from https://github.com/Newmu/dcgan_code
 from __future__ import division
 import math
 import json
+import os
 import random
 import pprint
 import scipy.misc
@@ -241,7 +242,15 @@ def visualize(sess, dcgan, config, option):
     new_image_set = [merge(np.array([images[idx] for images in image_set]), [10, 10]) \
         for idx in range(64) + range(63, -1, -1)]
     make_gif(new_image_set, './samples/test_gif_merged.gif', duration=8)
-
+  elif option == 5:
+    for j in xrange(int(config.sample_size/config.batch_size)):
+        z_sample = np.random.uniform(-1.0,1.0,size=(config.batch_size,dcgan.z_dim))
+        image = sess.run(dcgan.sampler, feed_dict={dcgan.z: z_sample})
+        if not os.path.isdir(config.output_path):
+            os.mkdir(config.output_path)
+        for i in xrange(config.batch_size):
+            print(" [*] %s" % str(64*j+i))
+            save_images2(image[i],[256,256,3,3,3],"./%s/test_%d_%d.jpg"%(config.output_path,j,i))
 
 def image_manifold_size(num_images):
   manifold_h = int(np.floor(np.sqrt(num_images)))
