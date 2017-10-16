@@ -33,6 +33,6 @@ python main.py --dataset duke_train --train --input_height 128 --output_height 1
 
 ### 2.Test
 ```bash
-python main.py --dataset duke_train --options 5  --output_path duke_256_48000  --sample_size 48000
+python main.py --dataset duke_train --options 5  --output_path duke_256_48000  --sample_size 48000  --input_height 128 --output_height 128
 ```
 It will use your trained model and generate 48000 images for the following semi-supervised training.
