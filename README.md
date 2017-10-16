@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - Python 2.7 or Python 3.3+
-- [Tensorflow 0.12.1](https://github.com/tensorflow/tensorflow/tree/r0.12)
+- [Tensorflow 0.12.1](https://github.com/tensorflow/tensorflow/tree/r0.12) (Notice that it is not the latest version)
 - [SciPy](http://www.scipy.org/install.html)
 - [pillow](https://github.com/python-pillow/Pillow)
 - CUDA 8.0
