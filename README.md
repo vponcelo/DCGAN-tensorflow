@@ -27,7 +27,7 @@ source activate dcgan
 ```bash
 mkdir data
 ln -rs your_dataset_path/DukeMTMC-reID/bounding_box_train ./data/duke_train
-python main.py --dataset duke_train --train --input_height 128 --output_height 128 --options 1
+python main.py --dataset duke_train --train --input_height 128 --output_height 128 --options 1 --checkpoint_dir checkpointDuke --sample_dir samplesDuke --fps_gap 3
 ```
 `duke_train` is the dir path which contains images. Here I use the (DukeMTMC-reID)[https://github.com/layumi/DukeMTMC-reID_evaluation] training set. You can change it to your dataset path.
 
