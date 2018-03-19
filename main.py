@@ -27,6 +27,7 @@ flags.DEFINE_string("sample_dir", "samples", "Directory name to save the image s
 flags.DEFINE_boolean("train", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("crop", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
+flags.DEFINE_integer("fps_gap", 1, "The time gap between consecutive images default [1]")
 FLAGS = flags.FLAGS
 
 def main(_):
@@ -72,6 +73,7 @@ def main(_):
           batch_size=FLAGS.batch_size,
           sample_num=FLAGS.batch_size,
           dataset_name=FLAGS.dataset,
+          fps_gap=FLAGS.fps_gap,
           input_fname_pattern=FLAGS.input_fname_pattern,
           crop=FLAGS.crop,
           checkpoint_dir=FLAGS.checkpoint_dir,

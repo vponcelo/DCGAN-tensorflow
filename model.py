@@ -15,7 +15,7 @@ def conv_out_size_same(size, stride):
 
 class DCGAN(object):
   def __init__(self, sess, input_height=108, input_width=108, crop=True,
-         batch_size=64, sample_num = 64, output_height=64, output_width=64,
+         batch_size=64, sample_num = 64, fps_gap = 1, output_height=64, output_width=64,
          y_dim=None, z_dim=100, gf_dim=64, df_dim=64,
          gfc_dim=1024, dfc_dim=1024, c_dim=3, dataset_name='default',
          input_fname_pattern='*.jpg', checkpoint_dir=None, sample_dir=None):
@@ -37,6 +37,7 @@ class DCGAN(object):
 
     self.batch_size = batch_size
     self.sample_num = sample_num
+    self.fps_gap = fps_gap
 
     self.input_height = input_height
     self.input_width = input_width
@@ -75,6 +76,9 @@ class DCGAN(object):
       self.c_dim = self.data_X[0].shape[-1]
     else:
       self.data = glob(os.path.join("./data", self.dataset_name, self.input_fname_pattern))
+      if self.fps_gap > 1:  # In case of image sequences (videos), better set fps_gap > 1 to skip redundant images
+        self.data = self.data[0::self.fps_gap]    # Reduce training data in time gaps given by fps_gap (+diversity)
+      print ("Setting training data to %d samples by %d fps gaps" % (len(self.data), self.fps_gap))
       imreadImg = imread(self.data[0]);
       if len(imreadImg.shape) >= 3: #check if image is a non-grayscale image by checking channel number
         self.c_dim = imread(self.data[0]).shape[-1]
@@ -140,7 +144,10 @@ class DCGAN(object):
     self.d_vars = [var for var in t_vars if 'd_' in var.name]
     self.g_vars = [var for var in t_vars if 'g_' in var.name]
 
+    #try:
     self.saver = tf.train.Saver()
+    #except:
+    #  print ("Error attempting to save the model file. Disk Quota Exceeded?")
 
   def train(self, config):
     d_optim = tf.train.AdamOptimizer(config.learning_rate, beta1=config.beta1) \
