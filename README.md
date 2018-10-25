@@ -7,8 +7,6 @@
 - [SciPy](http://www.scipy.org/install.html)
 - [pillow](https://github.com/python-pillow/Pillow)
 - CUDA 8.0
-- dlib
-- cv2
 
 Add Cuda Path to bashrc first
 ```bash
