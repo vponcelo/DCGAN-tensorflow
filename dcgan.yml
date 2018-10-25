@@ -14,4 +14,4 @@ dependencies:
     - protobuf
     - pip:
         - moviepy
-        - tensorflow-gpu==0.12.1
+        - tensorflow-gpu==1.4.0

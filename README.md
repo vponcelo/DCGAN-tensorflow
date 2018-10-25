@@ -7,6 +7,8 @@
 - [SciPy](http://www.scipy.org/install.html)
 - [pillow](https://github.com/python-pillow/Pillow)
 - CUDA 8.0
+- dlib
+- cv2
 
 Add Cuda Path to bashrc first
 ```bash
@@ -33,6 +35,6 @@ python main.py --dataset duke_train --train --input_height 128 --output_height 1
 
 ### 2.Test
 ```bash
-python main.py --dataset duke_train --options 5  --output_path duke_256_48000  --sample_size 48000  --input_height 128 --output_height 128
+python main.py --dataset duke_train --options 5  --output_path duke_256_48000  --sample_size 48000  --input_height 128 --output_height 128 --checkpoint_dir checkpointDuke
 ```
 It will use your trained model and generate 48000 images for the following semi-supervised training.
