@@ -10,14 +10,16 @@ from six.moves import xrange
 from ops import *
 from utils import *
 
+import dlib, cv2
+
 def conv_out_size_same(size, stride):
   return int(math.ceil(float(size) / float(stride)))
 
 class DCGAN(object):
   def __init__(self, sess, input_height=108, input_width=108, crop=True,
-         batch_size=64, sample_num = 64, fps_gap = 1, output_height=64, output_width=64,
-         y_dim=None, z_dim=100, gf_dim=64, df_dim=64,
-         gfc_dim=1024, dfc_dim=1024, c_dim=3, dataset_name='default',
+         batch_size=64, sample_num = 64, fps_gap = 1, face_control = False, face_model = None,
+         face_penalisation_factor = 0.1, output_height=64, output_width=64,
+         y_dim=None, z_dim=100, gf_dim=64, df_dim=64, gfc_dim=1024, dfc_dim=1024, c_dim=3, dataset_name='default',
          input_fname_pattern='*.jpg', checkpoint_dir=None, sample_dir=None):
     """
 
@@ -38,6 +40,12 @@ class DCGAN(object):
     self.batch_size = batch_size
     self.sample_num = sample_num
     self.fps_gap = fps_gap
+    self.face_control = face_control
+    if face_control:
+        self.face_penalisation_factor = face_penalisation_factor
+        if face_model is None:
+            face_model = dlib.cnn_face_detection_model_v1("./model/trained_model/mmod_human_face_detector.dat")
+    self.face_model = face_model
 
     self.input_height = input_height
     self.input_width = input_width
@@ -180,6 +188,18 @@ class DCGAN(object):
                     resize_width=self.output_width,
                     crop=self.crop,
                     grayscale=self.grayscale) for sample_file in sample_files]
+
+      # Face Semantic Controller:
+      # 1) evaluate image batch to detect presence of faces with OpenFace
+      # 2) if there is no face, evaluate as usual and add a penalisation factor
+      # on the discriminator loss for the real image.
+      c_faces = 0
+      for img in self.data[0:self.sample_num]:
+          rgbImg = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
+          dets = self.face_model(rgbImg, 2)
+          if len(dets) > 0:    # face detected
+              c_faces += 1
+
       if (self.grayscale):
         sample_inputs = np.array(sample).astype(np.float32)[:, :, :, None]
       else:
@@ -227,7 +247,7 @@ class DCGAN(object):
         if config.dataset == 'mnist':
           # Update D network
           _, summary_str = self.sess.run([d_optim, self.d_sum],
-            feed_dict={ 
+            feed_dict={
               self.inputs: batch_images,
               self.z: batch_z,
               self.y:batch_labels,
@@ -237,7 +257,7 @@ class DCGAN(object):
           # Update G network
           _, summary_str = self.sess.run([g_optim, self.g_sum],
             feed_dict={
-              self.z: batch_z, 
+              self.z: batch_z,
               self.y:batch_labels,
             })
           self.writer.add_summary(summary_str, counter)
@@ -246,9 +266,9 @@ class DCGAN(object):
           _, summary_str = self.sess.run([g_optim, self.g_sum],
             feed_dict={ self.z: batch_z, self.y:batch_labels })
           self.writer.add_summary(summary_str, counter)
-          
+
           errD_fake = self.d_loss_fake.eval({
-              self.z: batch_z, 
+              self.z: batch_z,
               self.y:batch_labels
           })
           errD_real = self.d_loss_real.eval({
@@ -260,29 +280,41 @@ class DCGAN(object):
               self.y: batch_labels
           })
         else:
-          # Update D network
-          _, summary_str = self.sess.run([d_optim, self.d_sum],
-            feed_dict={ self.inputs: batch_images, self.z: batch_z })
-          self.writer.add_summary(summary_str, counter)
+            # Update D network
+            _, summary_str = self.sess.run([d_optim, self.d_sum],
+                                           feed_dict={ self.inputs: batch_images, self.z: batch_z })
+            self.writer.add_summary(summary_str, counter)
 
-          # Update G network
-          _, summary_str = self.sess.run([g_optim, self.g_sum],
-            feed_dict={ self.z: batch_z })
-          self.writer.add_summary(summary_str, counter)
+            # Update G network
+            _, summary_str = self.sess.run([g_optim, self.g_sum],
+                                           feed_dict={ self.z: batch_z })
+            self.writer.add_summary(summary_str, counter)
 
-          # Run g_optim twice to make sure that d_loss does not go to zero (different from paper)
-          _, summary_str = self.sess.run([g_optim, self.g_sum],
-            feed_dict={ self.z: batch_z })
-          self.writer.add_summary(summary_str, counter)
-          
-          errD_fake = self.d_loss_fake.eval({ self.z: batch_z })
-          errD_real = self.d_loss_real.eval({ self.inputs: batch_images })
-          errG = self.g_loss.eval({self.z: batch_z})
+            # Run g_optim twice to make sure that d_loss does not go to zero (different from paper)
+            _, summary_str = self.sess.run([g_optim, self.g_sum],
+                                           feed_dict={ self.z: batch_z })
+            self.writer.add_summary(summary_str, counter)
+
+            errD_fake = self.d_loss_fake.eval({ self.z: batch_z })
+            errD_real = self.d_loss_real.eval({ self.inputs: batch_images })
+            errG = self.g_loss.eval({self.z: batch_z})
+
+            #print(errD_real)
+            if self.face_control:        # Add Penalisation to D(x) Loss for those non-face images
+                penalisation = self.face_penalisation_factor * c_faces
+                errD_real += penalisation
+            #print(errD_real)
 
         counter += 1
-        print("Epoch: [%2d] [%4d/%4d] time: %4.4f, d_loss: %.8f, g_loss: %.8f" \
-          % (epoch, idx, batch_idxs,
-            time.time() - start_time, errD_fake+errD_real, errG))
+        if self.face_control:
+          print("Epoch: [%2d] [%4d/%4d] time: %4.4f, Faces in the %2.2f%% of images in the Batch (%i/%i), Discriminator Loss Penalisation for real images to add: %.8f, True d_loss: %.8f, g_loss: %.8f" \
+            % (epoch, idx, batch_idxs,
+              time.time() - start_time, (c_faces*100)/self.sample_num, c_faces, self.sample_num, penalisation,
+              errD_fake+errD_real, errG))
+        else:
+          print("Epoch: [%2d] [%4d/%4d] time: %4.4f, True d_loss: %.8f, g_loss: %.8f" \
+            % (epoch, idx, batch_idxs,
+               time.time() - start_time, errD_fake + errD_real, errG))
 
         if np.mod(counter, 100) == 1:
           if config.dataset == 'mnist':
@@ -296,7 +328,7 @@ class DCGAN(object):
             )
             save_images(samples, image_manifold_size(samples.shape[0]),
                   './{}/train_{:02d}_{:04d}.png'.format(config.sample_dir, epoch, idx))
-            print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss)) 
+            print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss))
           else:
             try:
               samples, d_loss, g_loss = self.sess.run(
@@ -308,7 +340,7 @@ class DCGAN(object):
               )
               save_images(samples, image_manifold_size(samples.shape[0]),
                     './{}/train_{:02d}_{:04d}.png'.format(config.sample_dir, epoch, idx))
-              print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss)) 
+              print("[Sample] d_loss: %.8f, g_loss: %.8f" % (d_loss, g_loss))
             except:
               print("one pic error!...")
 

@@ -11,13 +11,13 @@ flags = tf.app.flags
 flags.DEFINE_integer("epoch", 25, "Epoch to train [25]")
 flags.DEFINE_float("learning_rate", 0.0002, "Learning rate of for adam [0.0002]")
 flags.DEFINE_float("beta1", 0.5, "Momentum term of adam [0.5]")
-flags.DEFINE_float("train_size", np.inf, "The size of train images [np.inf]")
+flags.DEFINE_integer("train_size", np.inf, "The size of train images [np.inf]")
 flags.DEFINE_integer("batch_size", 64, "The size of batch images [64]")
 flags.DEFINE_integer("input_height", 108, "The size of image to use (will be center cropped). [108]")
 flags.DEFINE_integer("input_width", None, "The size of image to use (will be center cropped). If None, same value as input_height [None]")
 flags.DEFINE_integer("output_height", 64, "The size of the output images to produce [64]")
 flags.DEFINE_integer("output_width", None, "The size of the output images to produce. If None, same value as output_height [None]")
-flags.DEFINE_string("output_path", 'duke_result',"output image path")
+flags.DEFINE_string("output_path", 'gen_img',"output image path")
 flags.DEFINE_integer("sample_size", 1000,"How much sample you want to output")
 flags.DEFINE_integer("options", 1,"output option")
 flags.DEFINE_string("dataset", "celebA", "The name of dataset [celebA, mnist, lsun]")
@@ -28,6 +28,9 @@ flags.DEFINE_boolean("train", False, "True for training, False for testing [Fals
 flags.DEFINE_boolean("crop", False, "True for training, False for testing [False]")
 flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothing [False]")
 flags.DEFINE_integer("fps_gap", 1, "The time gap between consecutive images default [1]")
+flags.DEFINE_boolean("face_control", False, "Facial semantic controller by OpenFace to influence training [False]")
+flags.DEFINE_string("face_model", None, "Path to the dlib Face Fetection model [None]")
+flags.DEFINE_float("face_penalisation_factor", 0.1, "Penalisation factor for non-detected faces [0.1]")
 FLAGS = flags.FLAGS
 
 def main(_):
@@ -74,6 +77,9 @@ def main(_):
           sample_num=FLAGS.batch_size,
           dataset_name=FLAGS.dataset,
           fps_gap=FLAGS.fps_gap,
+          face_control=FLAGS.face_control,
+          face_model=FLAGS.face_model,
+          face_penalisation_factor=FLAGS.face_penalisation_factor,
           input_fname_pattern=FLAGS.input_fname_pattern,
           crop=FLAGS.crop,
           checkpoint_dir=FLAGS.checkpoint_dir,
