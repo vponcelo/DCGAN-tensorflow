@@ -30,7 +30,7 @@ flags.DEFINE_boolean("visualize", False, "True for visualizing, False for nothin
 flags.DEFINE_integer("fps_gap", 1, "The time gap between consecutive images default [1]")
 flags.DEFINE_boolean("face_control", False, "Facial semantic controller by OpenFace to influence training [False]")
 flags.DEFINE_string("face_model", None, "Path to the dlib Face Fetection model [None]")
-flags.DEFINE_float("face_penalisation_factor", 0.1, "Penalisation factor for non-detected faces [0.1]")
+flags.DEFINE_float("face_penalisation_factor", 0.05, "Penalisation factor for non-detected faces [0.1]")
 FLAGS = flags.FLAGS
 
 def main(_):

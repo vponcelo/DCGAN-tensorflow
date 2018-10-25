@@ -18,7 +18,7 @@ def conv_out_size_same(size, stride):
 class DCGAN(object):
   def __init__(self, sess, input_height=108, input_width=108, crop=True,
          batch_size=64, sample_num = 64, fps_gap = 1, face_control = False, face_model = None,
-         face_penalisation_factor = 0.1, output_height=64, output_width=64,
+         face_penalisation_factor = 0.05, output_height=64, output_width=64,
          y_dim=None, z_dim=100, gf_dim=64, df_dim=64, gfc_dim=1024, dfc_dim=1024, c_dim=3, dataset_name='default',
          input_fname_pattern='*.jpg', checkpoint_dir=None, sample_dir=None):
     """
@@ -189,17 +189,6 @@ class DCGAN(object):
                     crop=self.crop,
                     grayscale=self.grayscale) for sample_file in sample_files]
 
-      # Face Semantic Controller:
-      # 1) evaluate image batch to detect presence of faces with OpenFace
-      # 2) if there is no face, evaluate as usual and add a penalisation factor
-      # on the discriminator loss for the real image.
-      c_faces = 0
-      for img in self.data[0:self.sample_num]:
-          rgbImg = cv2.cvtColor(cv2.imread(img), cv2.COLOR_BGR2RGB)
-          dets = self.face_model(rgbImg, 2)
-          if len(dets) > 0:    # face detected
-              c_faces += 1
-
       if (self.grayscale):
         sample_inputs = np.array(sample).astype(np.float32)[:, :, :, None]
       else:
@@ -236,6 +225,24 @@ class DCGAN(object):
                         resize_width=self.output_width,
                         crop=self.crop,
                         grayscale=self.grayscale) for batch_file in batch_files]
+
+          # Face Semantic Controller:
+          # 1) evaluate image batch to detect presence of faces with OpenFace
+          # 2) if there is no face, evaluate as usual and add a penalisation factor
+          # on the discriminator loss for the real image.
+          c_faces = 0
+          for img_file in batch_files:
+            image = cv2.imread(img_file)
+            (h,w) = image.shape[:2]
+            while h > 1200 or w > 600:    # avoid out of memory from too large images
+              #print (h, w)
+              image = cv2.resize(image, (int(w/2),int(h/2)))
+              (h, w) = image.shape[:2]
+            rgbImg = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            dets = self.face_model(rgbImg, 2)
+            if len(dets) > 0:  # face detected
+              c_faces += 1
+
           if self.grayscale:
             batch_images = np.array(batch).astype(np.float32)[:, :, :, None]
           else:
@@ -300,14 +307,14 @@ class DCGAN(object):
             errG = self.g_loss.eval({self.z: batch_z})
 
             #print(errD_real)
-            if self.face_control:        # Add Penalisation to D(x) Loss for those non-face images
-                penalisation = self.face_penalisation_factor * c_faces
+            if self.face_control:        # Add Penalisation to D(x) Loss for those non-face real images from this batch
+                penalisation = self.face_penalisation_factor * (len(batch_images)-c_faces)
                 errD_real += penalisation
             #print(errD_real)
 
         counter += 1
         if self.face_control:
-          print("Epoch: [%2d] [%4d/%4d] time: %4.4f, Faces in the %2.2f%% of images in the Batch (%i/%i), Discriminator Loss Penalisation for real images to add: %.8f, True d_loss: %.8f, g_loss: %.8f" \
+          print("Epoch: [%2d] [%4d/%4d] time: %4.4f, Face images in Batch: %2.2f%% (%i/%i), Real-Discriminator Loss Penalty: %.3f, True d_loss: %.8f, g_loss: %.8f" \
             % (epoch, idx, batch_idxs,
               time.time() - start_time, (c_faces*100)/self.sample_num, c_faces, self.sample_num, penalisation,
               errD_fake+errD_real, errG))
