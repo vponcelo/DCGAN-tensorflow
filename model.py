@@ -108,8 +108,7 @@ class DCGAN(object):
     else:
       image_dims = [self.input_height, self.input_width, self.c_dim]
 
-    if self.face_control:
-      self.penalisation = 0
+    self.penalisation = 0
 
     self.inputs = tf.placeholder(
       tf.float32, [self.batch_size] + image_dims, name='real_images')
